@@ -32,6 +32,10 @@ def main(max_items):
     if USE_SHORTENER:
         s = gdshortener.ISGDShortener()
     twister = AuthServiceProxy(RPC_URL)
+
+    # See if we have a max length set for notices
+    max_length = MAX_NOTICE_LENGTH or 140
+
     for feed_url in FEEDS:
         logging.info(feed_url)
         feed = feedparser.parse(feed_url)
@@ -46,11 +50,11 @@ def main(max_items):
 
                 if len(entry_url)<=MAX_URL_LENGTH:
                     msg = u'{0} {1}'.format(entry_url,e.title)
-                    if len(msg)>140: # Truncate (and hope it's still meaningful)
-                        msg = msg[:137]+u'...'
+                    if len(msg) > max_length: # Truncate (and hope it's still meaningful)
+                        msg = msg[:(max_length - 3)]+u'...'
                 else: # Link too long. Not enough space left for text :(
                     msg = ''
-                utfmsg = truncated_utf8(msg,140)# limit is 140 utf-8 bytes (not chars)
+                utfmsg = truncated_utf8(msg,max_length)# limit is in utf-8 bytes (not chars)
                 msg = unicode(utfmsg,'utf-8') # AuthServiceProxy needs unicode [we just needed to know where to truncate, and that's utf-8]
                 db[eid] = utfmsg # anydbm, on the other hand, can't handle unicode, so it's a good thing we've also kept the utf-8 :)
                 if not msg: # We've marked it as "posted", but no sense really posting it.
