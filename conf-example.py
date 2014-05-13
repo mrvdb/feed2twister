@@ -8,6 +8,7 @@ MAX_NOTICE_LENGTH = 140 # 140 is the default, but newer twister has autosplit fe
 MAX_URL_LENGTH = 100 # this leaves 36 characters and a ... to get to 140. If we don't have that, we skip the item :(
 MAX_NEW_ITEMS_PER_FEED = 3 # we don't want to flood more than that in a single run.
 USE_SHORTENER=True
+USE_CONTENT=False  # Set to True to use the content element from the feed instead of the title, this makes for more interesting posts
 FEEDS = [ # Use your own feeds, of course :)
     'https://swatwt.com/favs/rss/en',
     'https://github.com/thedod.atom'

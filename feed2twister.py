@@ -1,6 +1,7 @@
 from conf import *
 import feedparser,anydbm,sys
 from bitcoinrpc.authproxy import AuthServiceProxy
+from bs4 import BeautifulSoup
 
 if USE_SHORTENER:
     import gdshortener
@@ -44,15 +45,23 @@ def main(max_items):
             eid = '{0}|{1}'.format(feed_url,e.id)
             if db.has_key(eid): # been there, done that (or not - for a reason)
                 logging.debug('Skipping duplicate {0}'.format(eid))
-            else: # format as a <=140 character string
+            else: # format as a <=max_length character string
                 # Construct the link, possibly with shortener
                 entry_url = s.shorten(e.link)[0] if USE_SHORTENER else e.link
 
-                if len(entry_url)<=MAX_URL_LENGTH:
-                    msg = u'{0} {1}'.format(entry_url,e.title)
-                    if len(msg) > max_length: # Truncate (and hope it's still meaningful)
-                        msg = msg[:(max_length - 3)]+u'...'
-                else: # Link too long. Not enough space left for text :(
+                # Construct the content, make sure we remove html semi intelligently.
+                content_src = e.content[0].value if USE_CONTENT else e.title
+                content_src = BeautifulSoup(content_src).get_text()
+
+                # Is the configured link length Ok?
+                if len(entry_url) <= MAX_URL_LENGTH:
+                    # Format the message, a return and the link
+                    # Making sure the total does not exceed max_length
+                    trim_to = max_length - len(entry_url) - 4  # 4 -> length of '...\n'
+                    entry_text = content_src[:trim_to] + u'...' if len(content_src) > trim_to else content_src
+
+                    msg = u'{0}\n{1}'.format(entry_text, entry_url)
+                else:  # Link too long. Not enough space left for text :(
                     msg = ''
                 utfmsg = truncated_utf8(msg,max_length)# limit is in utf-8 bytes (not chars)
                 msg = unicode(utfmsg,'utf-8') # AuthServiceProxy needs unicode [we just needed to know where to truncate, and that's utf-8]
